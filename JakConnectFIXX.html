@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JakConnect</title>
+    
+    <style>
+        /* --- STYLES UTAMA & SHELL APLIKASI --- */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+
+        .app-shell {
+            width: 375px;
+            height: 812px;
+            background-color: white;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            box-sizing: border-box;
+            background-color: white;
+        }
+
+        .page.active {
+            display: flex;
+        }
+
+        /* --- GLOBAL COMPONENTS --- */
+        
+        /* Navigasi Bawah */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background-color: white;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: 10px;
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #b0b0b0;
+            transition: color 0.3s;
+        }
+        .nav-item.active { color: #6200EE; }
+        .nav-item .icon { font-size: 1.6rem; margin-bottom: 4px; }
+        .nav-item span { font-size: 0.75rem; font-weight: 500; }
+
+        .main-content {
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-bottom: 100px;
+            scrollbar-width: none;
+        }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        /* Tombol & Link */
+        a { text-decoration: none; }
+        .btn { display: block; width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; font-size: 1rem; font-weight: bold; box-sizing: border-box; text-align: center; transition: transform 0.1s; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: linear-gradient(135deg, #6200EE, #7C4DFF); color: white; box-shadow: 0 4px 10px rgba(98, 0, 238, 0.3); }
+        .btn-secondary { background-color: transparent; color: #6200EE; border: 2px solid #6200EE; }
+        
+        /* Input */
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.5px; }
+        .input-group input { width: 100%; padding: 16px; border: 1px solid #eee; background-color: #f8f9fa; border-radius: 12px; box-sizing: border-box; font-size: 1rem; outline: none; transition: border-color 0.3s; }
+        .input-group input:focus { border-color: #6200EE; background-color: white; }
+
+        /* --- SALDO ALIGNMENT FIX --- */
+        .balance-row {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+        }
+        .balance-row .currency {
+            font-size: 1rem;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+        .balance-row .amount {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        /* --- PAGE SPECIFIC STYLES --- */
+
+        /* Slide 1: Splash (LOGO CENTERED & SLOGAN) */
+        #page1 { justify-content: center; background: white; }
+        #page1 .content-wrapper { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; /* Kunci agar logo ditengah horizontal */
+            justify-content: space-between; 
+            height: 100%; 
+            padding: 60px 30px; 
+            box-sizing: border-box; 
+            text-align: center;
+        }
+        
+        #page1 .logo { 
+            width: 160px; 
+            height: 160px; 
+            background: transparent; 
+            border-radius: 30px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            margin: 0 auto 20px auto; /* Auto margin kiri-kanan */
+            overflow: hidden; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1); 
+        }
+        #page1 .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+        }
+
+        #page1 .logo-text { text-align: center; width: 100%; }
+        #page1 h1 { font-size: 2rem; color: #6200EE; margin: 0; }
+        #page1 p { letter-spacing: 3px; color: #aaa; margin-top: 5px; font-size: 0.9rem; margin-bottom: 0; }
+        
+        /* Style untuk Slogan Baru */
+        #page1 .tagline {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 15px;
+            letter-spacing: normal; /* Override letter-spacing dari p biasa */
+            line-height: 1.4;
+            font-style: italic;
+        }
+        
+        #page1 .button-group { width: 100%; }
+
+        /* Slide 2: Masuk (Login) */
+        #page2 { 
+            padding: 0; 
+            background-color: #f8f9fa;
+        }
+        #page2 .header-bg { 
+            width: 100%; 
+            height: 300px; 
+            background: linear-gradient(135deg, #4A3C8F, #6200EE); 
+            border-bottom-left-radius: 40px;
+            border-bottom-right-radius: 40px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+        #page2 .login-content {
+            position: relative;
+            z-index: 1;
+            padding: 0 30px;
+            margin-top: 180px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        #page2 .login-form { 
+            background: white; 
+            border-radius: 25px; 
+            padding: 30px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+        }
+        #page2 h1 { font-size: 2rem; margin: 0 0 10px 0; color: #333; }
+        #page2 .subtitle { color: #888; margin-bottom: 30px; display: block; }
+        
+        /* Tombol Login Simetris */
+        .btn-login { 
+            width: 100%; 
+            padding: 16px; 
+            border: none; 
+            border-radius: 12px; 
+            background: #6200EE; 
+            color: white; 
+            font-size: 1rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin-top: 15px; 
+            margin-bottom: 15px; 
+            display: block; 
+            text-align: center; 
+            box-sizing: border-box; 
+        }
+        
+        .links { display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.9rem; }
+        .links a { color: #6200EE; font-weight: 500; }
+
+        /* Slide 3: Daftar */
+        #page3 { padding: 30px; overflow-y: auto; }
+        #page3 .header h1 { font-size: 2rem; color: #6200EE; margin-bottom: 5px; }
+        #page3 .header p a { color: #6200EE; font-weight: bold; }
+        .btn-signup { width: 100%; padding: 16px; border: none; border-radius: 12px; background: #6200EE; color: white; font-size: 1rem; font-weight: bold; margin-top: 20px; display: block; text-align: center; }
+
+        /* Slide 4: Home */
+        #page4 .header { display: flex; align-items: center; margin-bottom: 20px; gap: 15px; }
+        #page4 .header h2 { color: #4A3C8F; font-size: 1.2rem; margin: 0; white-space: nowrap;}
+        #page4 .header input { flex-grow: 1; padding: 10px 15px; border: none; background: #f0f2f5; border-radius: 20px; outline: none; }
+        
+        #page4 .balance-card { 
+            background: linear-gradient(135deg, #4A3C8F, #6A5ACD); 
+            color: white; 
+            border-radius: 20px; 
+            padding: 25px; 
+            margin-bottom: 30px; 
+            box-shadow: 0 8px 20px rgba(74, 60, 143, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        #page4 .balance-card::after { content: ''; position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+        
+        #page4 .balance-top { display: flex; justify-content: space-between; align-items: center; }
+        #page4 .balance-info p { margin: 0 0 5px 0; font-size: 0.85rem; opacity: 0.8; }
+        
+        #page4 .balance-actions { display: flex; gap: 10px; margin-top: 20px; }
+        #page4 .balance-actions .btn-mini { 
+            flex: 1; 
+            background: rgba(255,255,255,0.2); 
+            color: white; 
+            padding: 10px; 
+            border-radius: 10px; 
+            text-align: center; 
+            font-size: 0.85rem; 
+            backdrop-filter: blur(5px);
+        }
+
+        #page4 .category-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px 10px; }
+        #page4 .category-item { display: flex; flex-direction: column; align-items: center; color: #333; }
+        #page4 .category-icon { width: 55px; height: 55px; background-color: white; border-radius: 18px; display: flex; justify-content: center; align-items: center; margin-bottom: 8px; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        #page4 .category-item span { font-size: 0.75rem; text-align: center; color: #555; }
+
+        /* Slide 5: Isi Saldo */
+        #page5 { background-color: #f8f9fa; }
+        #page5 .header { padding: 20px; display: flex; align-items: center; background: white; }
+        #page5 .header h1 { flex-grow: 1; text-align: center; font-size: 1.1rem; margin: 0; }
+        
+        #page5 .balance-display { background: white; padding: 30px 20px; text-align: center; margin-bottom: 20px; border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        #page5 .balance-display p { margin: 0; color: #888; font-size: 0.9rem; }
+        #page5 .balance-display .balance-row { justify-content: center; margin-top: 10px; color: #4A3C8F; }
+        
+        #page5 .method-group { padding: 0 20px; }
+        #page5 .method-option { background: white; border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        
+        /* --- CARD & LIST COMPONENTS --- */
+        .tabs { display: flex; gap: 10px; padding-bottom: 5px; margin-bottom: 15px; overflow-x: auto; scrollbar-width: none; }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab { background: white; padding: 8px 20px; border-radius: 20px; color: #888; font-size: 0.9rem; white-space: nowrap; border: 1px solid #eee; transition: all 0.3s; }
+        .tab.active { background: #4A3C8F; color: white; border-color: #4A3C8F; box-shadow: 0 4px 10px rgba(74, 60, 143, 0.2); }
+
+        .date-header { font-size: 0.85rem; color: #888; margin: 25px 0 10px 5px; font-weight: 600; letter-spacing: 0.5px; }
+
+        /* Ticket Card Style */
+        .ticket-elegant {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .ticket-top { padding: 20px; border-bottom: 2px dashed #e0e0e0; position: relative; }
+        .ticket-top::after, .ticket-top::before {
+            content: ''; position: absolute; bottom: -12px; width: 24px; height: 24px; background-color: #f0f2f5; border-radius: 50%; box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .ticket-top::before { left: -12px; }
+        .ticket-top::after { right: -12px; }
+
+        .ticket-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .transport-badge { background-color: #F0EAFF; color: #6200EE; padding: 5px 12px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; }
+        .ticket-code { font-family: 'Courier New', monospace; color: #888; font-size: 0.9rem; letter-spacing: 1px; }
+
+        .route-visual { display: flex; justify-content: space-between; align-items: center; margin: 20px 0; }
+        .station-point h4 { margin: 0; font-size: 1.1rem; color: #333; }
+        .station-point p { margin: 5px 0 0 0; font-size: 0.8rem; color: #888; }
+        .route-line { flex: 1; height: 2px; background-color: #e0e0e0; margin: 0 15px; position: relative; }
+        .route-line::after { content: '➜'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 0 5px; color: #ccc; font-size: 0.8rem; }
+
+        .ticket-bottom { padding: 15px 20px; background-color: #fafafa; display: flex; justify-content: space-between; align-items: center; }
+        .ticket-date { display: flex; flex-direction: column; }
+        .ticket-date span { font-size: 0.7rem; color: #aaa; font-weight: bold; text-transform: uppercase; }
+        .ticket-date strong { font-size: 0.9rem; color: #555; margin-top: 2px; }
+        .btn-ticket-action { background-color: #6200EE; color: white; padding: 8px 20px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 4px 10px rgba(98, 0, 238, 0.2); }
+
+        /* Transaction History Item */
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f0f0f0; }
+        .history-left { display: flex; align-items: center; gap: 15px; }
+        .history-icon { width: 40px; height: 40px; border-radius: 50%; background: #e8f5e9; color: #2e7d32; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .history-icon.out { background: #ffebee; color: #c62828; }
+
+        .header .back-arrow { font-size: 1.5rem; text-decoration: none; color: #333; padding: 10px; }
+        
+        /* Page 8: Detail (QR) */
+        #page8 { background-color: #4A3C8F; }
+        #page8 .header h1 { color: white; }
+        #page8 .back-arrow { color: white; }
+        #page8 .main-content { background: white; border-radius: 30px 30px 0 0; padding-top: 40px; margin-top: 20px; text-align: center; }
+        .qr-box { width: 200px; height: 200px; background: #f0f0f0; margin: 0 auto 20px auto; border-radius: 15px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc; }
+
+        /* Booking Pages */
+        .booking-header { background: linear-gradient(to right, #a1c4fd, #c2e9fb); padding: 30px 20px; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; color: white; }
+        .booking-card { background: white; margin: -30px 20px 20px 20px; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); position: relative; z-index: 2; }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-shell">
+
+        <div class="page active" id="page1">
+            <div class="content-wrapper">
+                <div style="margin-top: 100px;">
+                    <div class="logo">
+                        <img src="Gemini_Generated_Image_i9nsf5i9nsf5i9ns.png" alt="Jak Connect Logo">
+                    </div>
+                    <div class="logo-text">
+                        <h1>JAK CONNECT</h1>
+                        <p>TRANSPORT</p>
+                        <p class="tagline">"Satu Aplikasi, Semua Transportasi Jabodetabek."</p>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <a href="#page2" class="btn btn-primary">Masuk</a>
+                    <a href="#page3" class="btn btn-secondary">Daftar</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="page" id="page2">
+            <div class="header-bg"></div>
+            <div class="login-content">
+                <div class="login-form">
+                    <h1>Masuk</h1>
+                    <span class="subtitle">Selamat datang kembali!</span>
+                    
+                    <div class="input-group">
+                        <label for="email">EMAIL / NO TELP</label>
+                        <input type="text" id="email" placeholder="user@example.com">
+                    </div>
+                    <div class="input-group">
+                        <label for="password">PASSWORD</label>
+                        <input type="password" id="password" placeholder="••••••">
+                    </div>
+                    
+                    <a href="#page4" class="btn-login">Masuk Sekarang</a>
+                    
+                    <div class="links">
+                        <a href="#">Lupa Password?</a>
+                        <a href="#page3">Daftar Akun</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page" id="page3">
+            <div class="header" style="padding-bottom: 20px;">
+                <h1>Daftar Akun</h1>
+                <p>Sudah punya akun? <a href="#page2">Masuk disini.</a></p>
+            </div>
+            <div class="signup-form">
+                <div class="input-group">
+                    <label>NAMA LENGKAP</label>
+                    <input type="text">
+                </div>
+                <div class="input-group">
+                    <label>EMAIL</label>
+                    <input type="email">
+                </div>
+                <div class="input-group">
+                    <label>PASSWORD</label>
+                    <input type="password">
+                </div>
+                <a href="#page4" class="btn-signup">Buat Akun</a>
+            </div>
+        </div>
+
+        <div class="page" id="page4">
+            <div class="main-content">
+                <header class="header">
+                    <h2>JAK CONNECT</h2>
+                    <input type="search" placeholder="Cari tujuan...">
+                    <span style="font-size: 1.5rem;">👤</span>
+                </header>
+                
+                <section class="greeting" style="margin-bottom: 15px;">
+                    <p style="color: #777; margin:0;">Selamat Pagi,</p>
+                    <h3 style="margin: 0; font-size: 1.2rem;">Licaca Mumpuni</h3>
+                </section>
+
+                <section class="balance-card">
+                    <div class="balance-top">
+                        <div class="balance-info">
+                            <p>Saldo E-PAY Anda</p>
+                            <div class="balance-row" style="color: white;">
+                                <span class="currency">Rp</span>
+                                <span class="amount">1.000.000</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 2rem; opacity: 0.5;">💳</div>
+                    </div>
+                    <div class="balance-actions">
+                        <a href="#page5" class="btn-mini">+ Isi Saldo</a>
+                        <a href="#page6" class="btn-mini">📜 Riwayat</a>
+                    </div>
+                </section>
+
+                <section class="categories">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px;">Layanan</h3>
+                    <div class="category-grid">
+                        <a href="#page10" class="category-item"><div class="category-icon">🚂</div><span>KRL</span></a>
+                        <a href="#page13" class="category-item"><div class="category-icon">🚇</div><span>MRT</span></a>
+                        <a href="#page12" class="category-item"><div class="category-icon">🚆</div><span>LRT</span></a>
+                        <a href="#page14" class="category-item"><div class="category-icon">🚌</div><span>BRT</span></a>
+                        <a href="#page15" class="category-item"><div class="category-icon">🚐</div><span>Mikro</span></a>
+                        <a href="#" class="category-item"><div class="category-icon">📅</div><span>Jadwal</span></a>
+                        <a href="#" class="category-item"><div class="category-icon">📍</div><span>Peta</span></a>
+                        <a href="#" class="category-item"><div class="category-icon">⚡</div><span>Lainnya</span></a>
+                    </div>
+                </section>
+            </div>
+            
+            <nav class="bottom-nav">
+                <a href="#page4" class="nav-item active"><span class="icon">🏠</span><span>Home</span></a>
+                <a href="#page7" class="nav-item"><span class="icon">🎫</span><span>Tiket</span></a>
+                <a href="#page9" class="nav-item"><span class="icon">📜</span><span>Riwayat</span></a>
+                <a href="#page16" class="nav-item"><span class="icon">👤</span><span>Akun</span></a>
+            </nav>
+        </div>
+
+        <div class="page" id="page5">
+            <header class="header">
+                <a href="#page4" class="back-arrow">←</a>
+                <h1>ISI SALDO</h1>
+                <div style="width: 24px;"></div>
+            </header>
+            
+            <div class="content">
+                <div class="balance-display">
+                    <p>Total Saldo Saat Ini</p>
+                    <div class="balance-row">
+                        <span class="currency">Rp</span>
+                        <span class="amount">100.000</span>
+                    </div>
+                </div>
+
+                <section class="method-group">
+                    <h3 style="font-size: 0.9rem; color: #666; margin-left: 5px; margin-bottom: 10px;">PILIH METODE</h3>
+                    <div class="method-option">
+                        <span style="display:flex; align-items:center; gap:10px;">
+                            <div style="background:#e8f0fe; padding:8px; border-radius:50%; color:#6200EE;">🏦</div> ATM / Bank
+                        </span>
+                        <span style="color:#ccc;">&gt;</span>
+                    </div>
+                    <div class="method-option">
+                        <span style="display:flex; align-items:center; gap:10px;">
+                            <div style="background:#e8f0fe; padding:8px; border-radius:50%; color:#6200EE;">📱</div> M-Banking
+                        </span>
+                        <span style="color:#ccc;">&gt;</span>
+                    </div>
+                    <div class="method-option">
+                        <span style="display:flex; align-items:center; gap:10px;">
+                            <div style="background:#e8f0fe; padding:8px; border-radius:50%; color:#6200EE;">🏪</div> Minimarket
+                        </span>
+                        <span style="color:#ccc;">&gt;</span>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div class="page" id="page6">
+            <header class="header" style="padding:20px; display:flex; align-items:center; border-bottom:1px solid #eee;">
+                <a href="#page4" class="back-arrow">←</a>
+                <h1 style="font-size:1.2rem; margin-left:10px;">Riwayat Transaksi</h1>
+            </header>
+            <div class="filters" style="padding: 15px 20px; background-color: #f9f9f9; display: flex; gap: 10px;">
+                <a href="#" style="background: #e0e0e0; border-radius: 20px; padding: 8px 12px; font-size: 0.7rem; color: #333; font-weight: bold;">SEMUA TANGGAL ▾</a>
+                <a href="#" style="background: #e0e0e0; border-radius: 20px; padding: 8px 12px; font-size: 0.7rem; color: #333; font-weight: bold;">PILIH RENTANG ▾</a>
+            </div>
+            <div class="main-content">
+                <h3 class="date-header">NOVEMBER 2025</h3>
+                
+                <div class="history-item">
+                    <div class="history-left">
+                        <div class="history-icon">↑</div>
+                        <div>
+                            <h4 style="margin:0;">Isi Saldo</h4>
+                            <span style="font-size:0.8rem; color:#888;">Transfer Bank - TRALALA</span>
+                        </div>
+                    </div>
+                    <span style="color:green; font-weight:bold;">+Rp 1.000.000</span>
+                </div>
+                
+                <div class="history-item">
+                    <div class="history-left">
+                        <div class="history-icon out">↓</div>
+                        <div>
+                            <h4 style="margin:0;">Pembayaran</h4>
+                            <span style="font-size:0.8rem; color:#888;">KRL COMMUTER</span>
+                        </div>
+                    </div>
+                    <span style="color:red; font-weight:bold;">-Rp 100.000</span>
+                </div>
+
+                <div class="history-item">
+                    <div class="history-left">
+                        <div class="history-icon">↑</div>
+                        <div>
+                            <h4 style="margin:0;">Isi Saldo</h4>
+                            <span style="font-size:0.8rem; color:#888;">Transfer Bank - TRALALA</span>
+                        </div>
+                    </div>
+                    <span style="color:green; font-weight:bold;">+Rp 1.000.000.000</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="page" id="page7">
+            <div class="main-content">
+                <header class="header">
+                    <h2>Tiket Saya</h2>
+                </header>
+                
+                <div class="tabs">
+                    <a href="#" class="tab active">Semua</a>
+                    <a href="#" class="tab">KRL</a>
+                    <a href="#" class="tab">LRT</a>
+                    <a href="#" class="tab">MRT</a>
+                    <a href="#" class="tab">BRT</a>
+                    <a href="#page9" class="tab">Riwayat</a>
+                </div>
+
+                <div class="ticket-elegant">
+                    <div class="ticket-top">
+                        <div class="ticket-header-row">
+                            <div class="transport-badge">🚆 LRT JABODEBEK</div>
+                            <span class="ticket-code">#BVHKWDBK</span>
+                        </div>
+                        <div class="route-visual">
+                            <div class="station-point">
+                                <h4>Mumpuni</h4>
+                                <p>08:00 WIB</p>
+                            </div>
+                            <div class="route-line"></div>
+                            <div class="station-point">
+                                <h4>Pratama</h4>
+                                <p>08:45 WIB</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ticket-bottom">
+                        <div class="ticket-date">
+                            <span>JADWAL</span>
+                            <strong>Kamis, 30 Des 2030</strong>
+                        </div>
+                        <a href="#page8" class="btn-ticket-action">Lihat QR Code</a>
+                    </div>
+                </div>
+
+            </div>
+            <nav class="bottom-nav">
+                <a href="#page4" class="nav-item"><span class="icon">🏠</span><span>Home</span></a>
+                <a href="#page7" class="nav-item active"><span class="icon">🎫</span><span>Tiket</span></a>
+                <a href="#page9" class="nav-item"><span class="icon">📜</span><span>Riwayat</span></a>
+                <a href="#page16" class="nav-item"><span class="icon">👤</span><span>Akun</span></a>
+            </nav>
+        </div>
+
+        <div class="page" id="page8">
+            <header class="header" style="display: flex; align-items: center; padding: 20px;">
+                <a href="#page7" class="back-arrow">←</a>
+                <h1 style="flex:1; text-align:center; margin:0; color:white; font-size:1.2rem;">E-Tiket</h1>
+                <div style="width: 30px;"></div>
+            </header>
+            <div class="main-content">
+                <div class="qr-box">
+                    <span style="color:#aaa;">QR CODE AREA</span>
+                </div>
+                <p style="color: #555;">Scan pada Gate Masuk</p>
+                <h2 style="margin: 5px 0;">Rp 8.000</h2>
+                
+                <div style="text-align: left; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+                    <p style="color:#888; font-size:0.9rem; margin-bottom:5px;">Kode Booking</p>
+                    <h3 style="margin:0 0 20px 0;">BVHKWDBK</h3>
+                    
+                    <p style="color:#888; font-size:0.9rem; margin-bottom:5px;">Rute</p>
+                    <h3 style="margin:0;">St. Mumpuni ➜ St. Pratama</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="page" id="page9">
+            <div class="main-content">
+                <header class="header">
+                    <h2 style="color:#4A3C8F;">JAK CONNECT</h2>
+                    <h1>Riwayat Perjalanan</h1>
+                </header>
+                
+                <div class="tabs">
+                    <a href="#" class="tab active">Semua</a>
+                    <a href="#" class="tab">KRL</a>
+                    <a href="#" class="tab">LRT</a>
+                    <a href="#" class="tab">MRT</a>
+                </div>
+
+                <h3 class="date-header">DESEMBER 2030</h3>
+                <div class="ticket-elegant">
+                    <div class="ticket-top">
+                        <div class="ticket-header-row">
+                            <div class="transport-badge">🚆 LRT</div>
+                            <span class="ticket-code">#BVHKWDBK</span>
+                        </div>
+                        <div class="route-visual">
+                            <div class="station-point">
+                                <h4>St. Mumpuni</h4>
+                            </div>
+                            <div class="route-line"></div>
+                            <div class="station-point">
+                                <h4>St. Pratama</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ticket-bottom">
+                        <div class="ticket-date">
+                            <span>TANGGAL</span>
+                            <strong>Kamis, 30 Des 2030</strong>
+                        </div>
+                        <a href="#page8" class="btn-ticket-action" style="background:#ccc; color:#555;">Lihat</a>
+                    </div>
+                </div>
+
+                <h3 class="date-header">OKTOBER 2030</h3>
+                <div class="ticket-elegant">
+                    <div class="ticket-top">
+                        <div class="ticket-header-row">
+                            <div class="transport-badge" style="background-color: #fff0e6; color: #ff6b00;">🚂 KRL</div>
+                            <span class="ticket-code">#SKFNWKJ</span>
+                        </div>
+                        <div class="route-visual">
+                            <div class="station-point">
+                                <h4>St. Saifullah</h4>
+                            </div>
+                            <div class="route-line"></div>
+                            <div class="station-point">
+                                <h4>St. Ilmi</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ticket-bottom">
+                        <div class="ticket-date">
+                            <span>TANGGAL</span>
+                            <strong>Senin, 03 Okt 2030</strong>
+                        </div>
+                        <a href="#page8" class="btn-ticket-action" style="background:#ccc; color:#555;">Lihat</a>
+                    </div>
+                </div>
+
+            </div>
+            <nav class="bottom-nav">
+                <a href="#page4" class="nav-item"><span class="icon">🏠</span><span>Home</span></a>
+                <a href="#page7" class="nav-item"><span class="icon">🎫</span><span>Tiket</span></a>
+                <a href="#page9" class="nav-item active"><span class="icon">📜</span><span>Riwayat</span></a>
+                <a href="#page16" class="nav-item"><span class="icon">👤</span><span>Akun</span></a>
+            </nav>
+        </div>
+
+        <div class="page" id="page10">
+            <header class="header" style="padding:20px;">
+                <a href="#page4" class="back-arrow">←</a>
+                <h1 style="margin:10px 0;">KRL Commuter</h1>
+            </header>
+            <div class="main-content">
+                 <div style="background:#f9f9f9; padding:20px; border-radius:15px; text-align:center;">
+                     <p>Layanan Pemesanan Tiket</p>
+                     <a href="#page11" class="btn btn-primary">Pesan Tiket KRL</a>
+                 </div>
+            </div>
+         </div>
+
+         <div class="page" id="page11">
+             <div class="booking-header">
+                 <a href="#page10" style="color:white; font-size:1.5rem;">←</a>
+                 <h1 style="margin:10px 0;">Pesan KRL</h1>
+             </div>
+             <div class="booking-card">
+                 <div class="input-group">
+                     <label>DARI STASIUN</label>
+                     <input type="text" placeholder="Pilih Stasiun">
+                 </div>
+                 <div class="input-group">
+                     <label>KE STASIUN</label>
+                     <input type="text" placeholder="Pilih Stasiun">
+                 </div>
+                 <a href="#page7" class="btn btn-primary">Cari Tiket</a>
+             </div>
+         </div>
+
+         <div class="page" id="page16">
+             <div class="main-content">
+                 <h2 style="text-align:center;">Profile</h2>
+                 <div style="text-align:center; margin: 30px 0;">
+                     <div style="width:80px; height:80px; background:#eee; border-radius:50%; margin:0 auto 15px auto; display:flex; align-items:center; justify-content:center; font-size:2rem;">👤</div>
+                     <h3>Licaca Mumpuni</h3>
+                     <p style="color:#888;">licamumpra@ymail.com</p>
+                 </div>
+                 <a href="#page2" class="btn btn-secondary" style="color:red; border-color:red;">Keluar</a>
+             </div>
+             <nav class="bottom-nav">
+                <a href="#page4" class="nav-item"><span class="icon">🏠</span><span>Home</span></a>
+                <a href="#page7" class="nav-item"><span class="icon">🎫</span><span>Tiket</span></a>
+                <a href="#page9" class="nav-item"><span class="icon">📜</span><span>Riwayat</span></a>
+                <a href="#page16" class="nav-item active"><span class="icon">👤</span><span>Akun</span></a>
+            </nav>
+         </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const pages = document.querySelectorAll('.page');
+            const links = document.querySelectorAll('a[href^="#page"]');
+            const navItems = document.querySelectorAll('.bottom-nav .nav-item');
+
+            function showPage(pageId) {
+                pages.forEach(page => page.classList.remove('active'));
+                const targetPage = document.getElementById(pageId);
+                if (targetPage) {
+                    targetPage.classList.add('active');
+                } else {
+                    document.getElementById('page1').classList.add('active');
+                }
+
+                // Update Navigasi Bawah
+                let activeNav = null;
+                if (['page4', 'page5', 'page6', 'page10', 'page11', 'page12', 'page13', 'page14', 'page15'].includes(pageId)) activeNav = 'Home';
+                else if (['page7', 'page8'].includes(pageId)) activeNav = 'Tiket';
+                else if (['page9'].includes(pageId)) activeNav = 'Riwayat';
+                else if (['page16'].includes(pageId)) activeNav = 'Akun';
+
+                navItems.forEach(item => {
+                    const spanText = item.querySelector('span:last-child').textContent;
+                    if (spanText === activeNav) item.classList.add('active');
+                    else item.classList.remove('active');
+                });
+            }
+
+            links.forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const pageId = this.getAttribute('href').substring(1);
+                    showPage(pageId);
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
